@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Russian Roulette - Test Your Luck</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(180deg, #1a2332 0%, #0f1621 100%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      margin-bottom: 0.5rem;
+      color: #e8eef5;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: #8b9db8;
+      margin-bottom: 3rem;
+      font-weight: 400;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .stat-card {
+      background: rgba(30, 42, 61, 0.5);
+      border: 1px solid rgba(139, 157, 184, 0.2);
+      border-radius: 12px;
+      padding: 1.25rem 1rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #8b9db8;
+      margin-bottom: 0.5rem;
+      justify-content: center;
+    }
+
+    .stat-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #e8eef5;
+    }
+
+    .stat-value.highlight {
+      color: #fbbf24;
+    }
+
+    .cylinder-area {
+      position: relative;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 3rem 0;
+    }
+
+    .glow-effect {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .glow-effect.alive {
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%);
+      opacity: 1;
+    }
+
+    .glow-effect.dead {
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, transparent 70%);
+      opacity: 1;
+    }
+
+    .cylinder-container {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      transition: transform 0.1s ease;
+    }
+
+    .cylinder-container.spinning {
+      animation: spin 2s cubic-bezier(0.17, 0.67, 0.35, 0.96);
+    }
+
+    .cylinder-container.shooting {
+      animation: recoil 0.3s ease;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(1800deg); }
+    }
+
+    @keyframes recoil {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    .cylinder {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(139, 157, 184, 0.3) 0%, rgba(75, 85, 99, 0.2) 100%);
+      border: 2px solid rgba(139, 157, 184, 0.4);
+      position: relative;
+      margin: 0 auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 2px 8px rgba(139, 157, 184, 0.1);
+    }
+
+    .cylinder-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(30, 42, 61, 0.9) 0%, rgba(15, 22, 33, 0.9) 100%);
+      border: 2px solid rgba(139, 157, 184, 0.3);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .chamber {
+      position: absolute;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(75, 85, 99, 0.4) 0%, rgba(55, 65, 81, 0.3) 100%);
+      border: 2px solid rgba(139, 157, 184, 0.3);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .chamber.active {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.2) 100%);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.4), inset 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .chamber:nth-child(1) { top: 15px; left: 50%; transform: translateX(-50%); }
+    .chamber:nth-child(2) { top: 35px; right: 30px; }
+    .chamber:nth-child(3) { bottom: 35px; right: 30px; }
+    .chamber:nth-child(4) { bottom: 15px; left: 50%; transform: translateX(-50%); }
+    .chamber:nth-child(5) { bottom: 35px; left: 30px; }
+    .chamber:nth-child(6) { top: 35px; left: 30px; }
+
+    .handle {
+      position: absolute;
+      right: -60px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 90px;
+      height: 60px;
+      background: linear-gradient(90deg, rgba(139, 157, 184, 0.3) 0%, rgba(75, 85, 99, 0.2) 100%);
+      border: 2px solid rgba(139, 157, 184, 0.4);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 0.875rem 2rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: inherit;
+      min-width: 160px;
+      justify-content: center;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .spin-btn {
+      background: #3b82f6;
+      color: white;
+      border: 1px solid #2563eb;
+    }
+
+    .spin-btn:hover:not(:disabled) {
+      background: #2563eb;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .trigger-btn {
+      background: #ef4444;
+      color: white;
+      border: 1px solid #dc2626;
+    }
+
+    .trigger-btn:hover:not(:disabled) {
+      background: #dc2626;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .next-btn {
+      background: #10b981;
+      color: white;
+      border: 1px solid #059669;
+    }
+
+    .next-btn:hover:not(:disabled) {
+      background: #059669;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .instructions {
+      font-size: 0.95rem;
+      color: #8b9db8;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+    }
+
+    .result-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(30, 42, 61, 0.95);
+      border: 1px solid rgba(139, 157, 184, 0.3);
+      border-radius: 16px;
+      padding: 2rem 3rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease;
+      z-index: 100;
+    }
+
+    .result-modal.alive {
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .result-modal.dead {
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .result-text {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .result-text.alive {
+      color: #10b981;
+    }
+
+    .result-text.dead {
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RUSSIAN ROULETTE</h1>
+    <p class="subtitle">Test Your Luck</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+          </svg>
+          Rounds
+        </div>
+        <div class="stat-value" id="rounds">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Survived
+        </div>
+        <div class="stat-value" id="survived">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+          Current Streak
+        </div>
+        <div class="stat-value" id="currentStreak">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="stat-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+          </svg>
+          Best Streak
+        </div>
+        <div class="stat-value highlight" id="bestStreak">0</div>
+      </div>
+    </div>
+
+    <div class="cylinder-area">
+      <div class="glow-effect" id="glowEffect"></div>
+      <div class="cylinder-container" id="cylinderContainer">
+        <div class="cylinder">
+          <div class="chamber"></div>
+          <div class="chamber"></div>
+          <div class="chamber"></div>
+          <div class="chamber"></div>
+          <div class="chamber"></div>
+          <div class="chamber"></div>
+          <div class="cylinder-center"></div>
+        </div>
+        <div class="handle"></div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="spin-btn" id="spinBtn" onclick="spinCylinder()">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Spin Cylinder
+      </button>
+      <button class="trigger-btn" id="triggerBtn" onclick="pullTrigger()" disabled>
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Pull Trigger
+      </button>
+    </div>
+
+    <div id="nextBtnContainer"></div>
+
+    <p class="instructions">
+      Spin the cylinder, then pull the trigger. One chamber has a bullet.<br/>
+      After each survival, the cylinder rotates automatically.
+    </p>
+  </div>
+
+  <div id="resultModal"></div>
+
+  <script>
+    let chamber = 0;
+    let bulletPosition = 0;
+    let isSpinning = false;
+    let isShooting = false;
+    let gameResult = null;
+    let rounds = 0;
+    let survived = 0;
+    let currentStreak = 0;
+    let bestStreak = 0;
+
+    function updateUI() {
+      document.querySelectorAll('.chamber').forEach((el, idx) => {
+        el.classList.toggle('active', idx === chamber);
+      });
+
+      document.getElementById('rounds').textContent = rounds;
+      document.getElementById('survived').textContent = survived;
+      document.getElementById('currentStreak').textContent = currentStreak;
+      document.getElementById('bestStreak').textContent = bestStreak;
+    }
+
+    function spinCylinder() {
+      if (isSpinning || isShooting || gameResult !== null) return;
+
+      isSpinning = true;
+      gameResult = null;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('triggerBtn').disabled = true;
+      document.getElementById('resultModal').innerHTML = '';
+      document.getElementById('nextBtnContainer').innerHTML = '';
+      document.getElementById('glowEffect').className = 'glow-effect';
+
+      const container = document.getElementById('cylinderContainer');
+      container.classList.add('spinning');
+
+      bulletPosition = Math.floor(Math.random() * 6);
+
+      setTimeout(() => {
+        container.classList.remove('spinning');
+        isSpinning = false;
+        chamber = 0;
+        document.getElementById('spinBtn').disabled = false;
+        document.getElementById('triggerBtn').disabled = false;
+        updateUI();
+      }, 2000);
+    }
+
+    function pullTrigger() {
+      if (isSpinning || isShooting || gameResult !== null) return;
+
+      isShooting = true;
+      rounds++;
+      document.getElementById('triggerBtn').disabled = true;
+      document.getElementById('spinBtn').disabled = true;
+
+      const container = document.getElementById('cylinderContainer');
+      container.classList.add('shooting');
+
+      setTimeout(() => {
+        container.classList.remove('shooting');
+
+        if (chamber === bulletPosition) {
+          gameResult = 'dead';
+          currentStreak = 0;
+          document.getElementById('glowEffect').className = 'glow-effect dead';
+          showResultModal('💀 You\'re Dead!', 'dead');
+        } else {
+          gameResult = 'alive';
+          survived++;
+          currentStreak++;
+          if (currentStreak > bestStreak) {
+            bestStreak = currentStreak;
+          }
+          document.getElementById('glowEffect').className = 'glow-effect alive';
+          showResultModal('✓ You Survived!', 'alive');
+        }
+
+        isShooting = false;
+        updateUI();
+        showNextButton();
+      }, 800);
+    }
+
+    function showResultModal(text, type) {
+      const modal = document.getElementById('resultModal');
+      modal.innerHTML = `
+        <div class="result-modal ${type}">
+          <div class="result-text ${type}">${text}</div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        modal.innerHTML = '';
+      }, 2000);
+    }
+
+    function showNextButton() {
+      const container = document.getElementById('nextBtnContainer');
+      container.innerHTML = `
+        <div class="buttons">
+          <button class="next-btn" onclick="nextRound()">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+            Next Round
+          </button>
+        </div>
+      `;
+    }
+
+    function nextRound() {
+      gameResult = null;
+      chamber = 0;
+      document.getElementById('spinBtn').disabled = false;
+      document.getElementById('triggerBtn').disabled = true;
+      document.getElementById('nextBtnContainer').innerHTML = '';
+      document.getElementById('glowEffect').className = 'glow-effect';
+      updateUI();
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
